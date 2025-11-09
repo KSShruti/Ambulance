@@ -8,10 +8,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.js"></script>
 
-    <!-- FIREBASE SDK v9 COMPATIBILITY IMPORTS -->
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
-
     <style>
         /* Custom styles for light-mode, professional monitoring look */
         body {
@@ -32,7 +30,7 @@
             justify-content: center;
             align-items: center;
             height: 100%;
-            position: relative; /* Needed for absolute positioning of score bar */
+            position: relative;
         }
         .metric-label {
             font-size: 0.8rem;
@@ -146,23 +144,27 @@
             <h1 class="text-xl font-bold">Ambulatory Monitor </h1>
         </div>
 
+        <div class="flex flex-col items-center gap-1">
+            <p class="text-xs text-gray-500">ETA to Hospital:</p>
+            <p id="eta-value" class="font-bold text-lg text-red-600">--</p>
+        </div>
         <div class="flex items-center gap-4">
              <div class="text-base font-semibold text-right">
                  <p>Patient ID: <span id="patient-id-value" class="font-bold text-gray-900">--</span></p>
-                <div class="flex gap-2 justify-end text-sm mt-1">
-                    <input type="text" id="patient-name-input" class="logistics-input w-24" placeholder="Name">
-                    <input type="number" id="patient-age-input" class="logistics-input w-12" placeholder="Age">
-                    <select id="patient-gender-input" class="logistics-input w-10">
-                        <option value="M">M</option>
-                        <option value="F">F</option>
-                        <option value="O">O</option>
-                    </select>
-                </div>
-            </div>
-            <div class="flex items-center gap-2">
-                <span class="text-sm text-gray-500" id="status-text">Data Stream:</span>
-                <div id="connection-indicator" class="status-indicator"></div>
-            </div>
+                 <div class="flex gap-2 justify-end text-sm mt-1">
+                     <input type="text" id="patient-name-input" class="logistics-input w-24" placeholder="Name">
+                     <input type="number" id="patient-age-input" class="logistics-input w-12" placeholder="Age">
+                     <select id="patient-gender-input" class="logistics-input w-10">
+                         <option value="M">M</option>
+                         <option value="F">F</option>
+                         <option value="O">O</option>
+                     </select>
+                 </div>
+             </div>
+             <div class="flex items-center gap-2">
+                 <span class="text-sm text-gray-500" id="status-text">Data Stream:</span>
+                 <div id="connection-indicator" class="status-indicator"></div>
+             </div>
         </div>
     </header>
 
@@ -223,15 +225,12 @@
                 <canvas id="rrChart"></canvas>
             </div>
 
-            <!-- NEW PDS SUMMARY CARD (BELOW CHARTS) -->
             <div id="pds-summary-card" class="p-4 rounded-lg text-center transition-all duration-300 pds-stable">
                 <p class="text-sm font-semibold mb-1">Patient Deterioration Score</p>
                 <p id="total-pds-score" class="text-3xl font-extrabold">--</p>
                 <p id="pds-triage-text-footer" class="text-sm mt-1">-- Triage</p>
             </div>
-            <!-- END NEW PDS SUMMARY CARD -->
-
-        </div>
+            </div>
 
         <div class="flex flex-col w-1/4 gap-3">
 
@@ -254,12 +253,11 @@
                     <p class="text-gray-500 text-xs mt-1">BPM</p>
                     <div class="score-bar-container"><div class="score-bar-segment"></div><div class="score-bar-segment"></div><div class="score-bar-segment"></div><div class="score-bar-segment"></div><div class="score-pointer" id="score-pointer-rr"></div></div>
                 </div>
-                 <div class="metric-card">
+                   <div class="metric-card">
                     <p class="metric-label">Temp</p>
                     <p class="metric-value value-temp" id="temp-value">--</p>
                     <p class="text-gray-500 text-xs mt-1">°C</p>
-                    <!-- Temp does not contribute to PDS, so no score bar needed here -->
-                </div>
+                    </div>
                 <div class="metric-card" id="hrv-card">
                     <p class="metric-label">HRV (RMSSD)</p>
                     <p class="metric-value value-hrv" id="hrv-value">--</p>
@@ -269,7 +267,6 @@
             </div>
 
             <div class="flex flex-col gap-3 pt-2">
-                <!-- CRITICAL ALERT PANEL -->
                 <div id="critical-alert-panel" class="p-3 rounded-lg text-white font-bold text-center transition-all duration-300 bg-red-600 shadow-xl" style="display: none;">
                     CRITICAL ALERT!
                 </div>
@@ -282,7 +279,6 @@
 
     <script>
         // *** FIREBASE CONFIGURATION ***
-        // NOTE: The Firebase configuration below must match the Python script's configuration.
         const firebaseConfig = {
           apiKey: "AIzaSyAAUeebZlb07z-90q2noOiSQAZa99Q1RX0",
           authDomain: "ambulance-monitoring-5ad1a.firebaseapp.com",
@@ -301,8 +297,8 @@
         // References to the key database nodes
         const dbRef = db.ref('/');
         const logisticsRef = db.ref('logistics'); // Assignment data from Reception
-        const vitalsRef = db.ref('vitals');       // Live data from Python/ESP32
-        const patientsRef = db.ref('patients');   // Patient directory for Registration
+        const vitalsRef = db.ref('vitals');        // Live data from Python/ESP32
+        const patientsRef = db.ref('patients');    // Patient directory for Registration
 
         const refreshRate = 500; // Vitals polling interval (kept for Chart.js updates)
         let currentPatientId = null;
@@ -317,25 +313,28 @@
             connectionIndicator: document.getElementById('connection-indicator'),
             statusText: document.getElementById('status-text'),
 
-            // PDS Elements (Right Column)
+            // PDS Elements
             criticalAlertPanel: document.getElementById('critical-alert-panel'),
             pointerHr: document.getElementById('score-pointer-hr'),
             pointerHrv: document.getElementById('score-pointer-hrv'),
             pointerRr: document.getElementById('score-pointer-rr'),
             pointerSpo2: document.getElementById('score-pointer-spo2'),
 
-            // PDS Summary Elements (Left Column Footer)
+            // PDS Summary Elements
             pdsSummaryCard: document.getElementById('pds-summary-card'),
             totalPdsScore: document.getElementById('total-pds-score'),
             pdsTriageTextFooter: document.getElementById('pds-triage-text-footer'),
 
-            // Patient Info Elements (Inputs)
+            // Patient Info Elements
             patientIdValue: document.getElementById('patient-id-value'),
             nameInput: document.getElementById('patient-name-input'),
             ageInput: document.getElementById('patient-age-input'),
             genderInput: document.getElementById('patient-gender-input'),
+            
+            // ⭐ NEW: ETA Element
+            etaValue: document.getElementById('eta-value'),
 
-            // Logistics Elements (Read-Only)
+            // Logistics Elements
             docInput: document.getElementById('doc-input'),
             nurseInput: document.getElementById('nurse-input'),
             bedInput: document.getElementById('bed-input'),
@@ -368,6 +367,11 @@
             return id;
         }
 
+        // ⭐ NEW: ETA Generator (5m to 55m)
+        function generateRandomETA() {
+            return Math.floor(Math.random() * (55 - 5 + 1)) + 5;
+        }
+        
         const formatValue = (value, decimals, defaultText = '--') => {
             if (value == null || isNaN(value) || value === '--') { return defaultText; }
             return parseFloat(value).toFixed(decimals);
@@ -392,35 +396,24 @@
             }
         }
 
-        /**
-         * Updates the position of the score bar pointer based on the individual score (0-3).
-         * @param {HTMLElement} pointerElement The pointer DOM element.
-         * @param {number} score The PDS score for the specific vital (0, 1, 2, or 3).
-         */
         function updateIndividualScorePointer(pointerElement, score) {
             let position;
-            // Map score (0, 1, 2, 3) to a position percentage on the bar (0% to 100%)
             switch (score) {
-                case 0: position = '12.5%'; break;  // Center of first segment (25% wide)
-                case 1: position = '37.5%'; break;  // Center of second segment
-                case 2: position = '62.5%'; break;  // Center of third segment
-                case 3: position = '87.5%'; break;  // Center of fourth segment
-                default: position = '50%'; // Default to middle if score is invalid
+                case 0: position = '12.5%'; break;
+                case 1: position = '37.5%'; break;
+                case 2: position = '62.5%'; break;
+                case 3: position = '87.5%'; break;
+                default: position = '50%';
             }
             pointerElement.style.left = position;
         }
 
-        /**
-         * Updates the appearance of the Total PDS Summary Card.
-         * @param {number} pdsScore The total PDS score (0-12).
-         * @param {string} triageText The calculated triage protocol text.
-         */
         function updateTotalPdsDisplay(pdsScore, triageText) {
             const card = elements.pdsSummaryCard;
             card.classList.remove('pds-stable', 'pds-urgent', 'pds-critical');
 
             if (pdsScore === '--' || pdsScore == null || isNaN(pdsScore)) {
-                card.classList.add('pds-stable'); // Default appearance
+                card.classList.add('pds-stable');
             } else if (pdsScore >= 8) {
                 card.classList.add('pds-critical');
             } else if (pdsScore >= 4) {
@@ -435,11 +428,10 @@
 
 
         function initializeCharts(waveformTimes) {
-            // Note: Chart.js is loaded via CDN, so we can initialize charts here.
             const chartOptions = (color) => ({
                 responsive: true, maintainAspectRatio: false, animation: { duration: 0 }, parsing: false,
                 scales: { x: { type: 'linear', min: 0, max: waveformTimes.length > 0 ? waveformTimes[waveformTimes.length - 1] : 5, grid: { display: false }, ticks: { display: false }, border: { display: false } },
-                          y: { grid: { color: '#e5e7eb', lineWidth: 0.5 }, ticks: { display: false }, border: { display: false } } },
+                             y: { grid: { color: '#e5e7eb', lineWidth: 0.5 }, ticks: { display: false }, border: { display: false } } },
                 plugins: { legend: { display: false }, tooltip: { enabled: false }, title: { display: false } }, elements: { point: { radius: 0 } }
             });
 
@@ -466,10 +458,12 @@
 
 
                 if (logistics && logistics.patient_id && logistics.patient_id !== '--') {
-                    // --- 1. HANDLING LOGISTICS DATA (Registration or Assignment) ---
 
                     if (logistics.patient_id === registeredPatientId) {
                         currentPatientId = logistics.patient_id;
+                        
+                        // ⭐ NEW: Update ETA Display
+                        elements.etaValue.textContent = logistics.eta_minutes ? `${logistics.eta_minutes} min` : '--';
 
                         // Read-only assignment fields
                         elements.docInput.value = logistics.doctor || 'N/A';
@@ -516,6 +510,9 @@
                         currentPatientId = await generatePatientId();
                         elements.patientIdValue.textContent = currentPatientId;
                     }
+                    
+                    // ⭐ NEW: Clear ETA display
+                    elements.etaValue.textContent = '--';
 
                     // Unlock demographics and enable save button
                     elements.nameInput.disabled = false;
@@ -552,7 +549,6 @@
 
             if (!pName || !pAge) {
                 console.error("Please enter patient name and age.");
-                // Use custom modal or message instead of alert
                 elements.saveBtn.textContent = 'Register/Update Patient';
                 elements.saveBtn.disabled = false;
                 return;
@@ -564,7 +560,16 @@
 
                 const logisticsSnapshot = await logisticsRef.once('value');
                 const currentLogistics = logisticsSnapshot.val() || {};
+                
+                // ⭐ NEW: Handle ETA Generation
+                const isNewRegistration = !currentLogistics.patient_id || currentLogistics.patient_id !== pId;
+                let eta = currentLogistics.eta_minutes || null;
 
+                if (isNewRegistration || eta === null || eta === '--') {
+                    eta = generateRandomETA();
+                    console.log(`Generated new ETA: ${eta} minutes.`);
+                }
+                // ------------------------------------
 
                 // 1. Update/Register patient in the Reception's patient list (/patients/{pId})
                 const patientDataToSave = {
@@ -599,36 +604,34 @@
                     nurse: nurse,
                     paramedic: paramedic,
                     bed: bed,
-                    updated_at: new Date().toISOString()
+                    updated_at: new Date().toISOString(),
+                    eta_minutes: eta // ⭐ NEW: Save ETA
                 };
 
                 const updates = {};
                 updates[`patients/${pId}`] = patientDataToSave;
                 updates[`logistics`] = logisticsDataToSave;
+                updates[`vitals/status`] = 'LIVE'; // Force Python script to monitor
 
                 await dbRef.update(updates);
 
                 console.log(`Patient ${pName} (${pId}) registered/updated in system for reception.`);
-                // Use custom message instead of alert
             } catch (error) {
                 console.error("Error saving logistics:", error);
-                // Use custom message instead of alert
             } finally {
                 // The logistics listener handles re-enabling the button and updating fields
             }
         }
 
-        // --- NEW: Function to clear the monitor stream ---
+        // --- Function to clear the monitor stream ---
         async function clearMonitorStream() {
             if (!currentPatientId || currentPatientId === '--') {
-                // Use custom message instead of alert
                 return;
             }
 
-            // In a real application, you'd use a custom modal here
-             if (!window.confirm("Are you sure you want to clear the monitor stream? This action prepares the monitor for a NEW patient and resets the logistics link.")) return;
+            if (!window.confirm("Are you sure you want to clear the monitor stream? This action prepares the monitor for a NEW patient and resets the logistics link.")) return;
 
-             // Reset the shared logistics node to empty state
+            // Reset the shared logistics node to empty state
             const initialLogistics = {
                 patient_id: '--',
                 patient_name: '--',
@@ -660,9 +663,9 @@
 
             console.log("Monitor stream cleared and logistics reset.");
             logisticsRef.once('value');
-            // Use custom message instead of alert
         }
 
+        // Removed exportEpcr function
 
         // --- VITAL SIGNS FETCH/WRITE FUNCTION (Uses Firebase RTDB) ---
         async function fetchAndUpdateData() {
@@ -710,7 +713,6 @@
                 }
 
                 // 5. CHART UPDATE LOGIC
-                // We check if charts are initialized and if we have waveform data to update them.
                 if (!ecgChart && data.waveform_times && data.waveform_times.length > 0) {
                     initializeCharts(data.waveform_times);
                 }
@@ -750,8 +752,8 @@
 
             if (!currentPatientId) {
                  generatePatientId().then(id => {
-                    elements.patientIdValue.textContent = id;
-                    currentPatientId = id;
+                     elements.patientIdValue.textContent = id;
+                     currentPatientId = id;
                  });
             }
 
